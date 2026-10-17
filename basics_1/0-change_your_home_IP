@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 # Configure /etc/hosts to point localhost to 127.0.0.2 and facebook.com to 8.8.8.8
 
-sudo sed -i 's/127.0.0.1 localhost/127.0.0.2 localhost/g' /etc/hosts
-if ! grep -q "facebook.com" /etc/hosts; then
-    sudo sh -c 'echo "8.8.8.8 facebook.com" >> /etc/hosts'
-else
-    sudo sed -i 's/.*facebook.com.*/8.8.8.8 facebook.com/g' /etc/hosts
-fi
+echo "127.0.0.2 localhost" | sudo tee /etc/hosts > /dev/null
+echo "8.8.8.8 facebook.com" | sudo tee -a /etc/hosts > /dev/null
