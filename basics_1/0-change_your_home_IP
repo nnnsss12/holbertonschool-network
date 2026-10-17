@@ -1,18 +1,38 @@
 #!/usr/bin/env bash
-# Configures /etc/hosts so localhost resolves to 127.0.0.2 and facebook.com to 8.8.8.8
+# Changes localhost and facebook.com mappings in /etc/hosts
 
-# Create a safe temporary file
-TMP_FILE=$(mktemp)
+HOSTS_FILE="/etc/hosts"
+TEMP_FILE=$(mktemp)
 
-# Filter out existing localhost and facebook.com entries to avoid duplication
-grep -vE 'localhost|facebook\.com' /etc/hosts > "$TMP_FILE"
+if [ "$EUID" -ne 0 ]; then
+    rm -f "$TEMP_FILE"
+    exit 1
+fi
 
-# Append the new required mappings
-echo "127.0.0.2 localhost" >> "$TMP_FILE"
-echo "8.8.8.8 facebook.com" >> "$TMP_FILE"
+awk '
+{
+    if ($1 == "127.0.0.1") {
+        for (i = 2; i <= NF; i++) {
+            if ($i == "localhost") {
+                $1 = "127.0.0.2"
+                break
+            }
+        }
+    }
 
-# Overwrite the actual hosts file using sudo
-sudo cp "$TMP_FILE" /etc/hosts
+    if ($2 == "facebook.com") {
+        next
+    }
 
-# Clean up temp file
-rm "$TMP_FILE"
+    print
+}
+' "$HOSTS_FILE" > "$TEMP_FILE"
+
+if ! grep -qE '^[[:space:]]*127\.0\.0\.2[[:space:]]+localhost([[:space:]]|$)' "$TEMP_FILE"; then
+    echo "127.0.0.2 localhost" >> "$TEMP_FILE"
+fi
+
+echo "8.8.8.8 facebook.com" >> "$TEMP_FILE"
+
+cat "$TEMP_FILE" > "$HOSTS_FILE"
+rm -f "$TEMP_FILE"
